@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Kalkulator Walut</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2em;
+      max-width: 300px;
+      margin: auto;
+    }
+    input, select, button {
+      padding: 0.5em;
+      margin: 0.5em 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #wynikBox {
+      margin-top: 0.5em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Kalkulator Walut</h1>
+  <label for="kwotaInput">Kwota:</label>
+  <input type="number" id="kwotaInput" value="1" min="0">
+  <label for="w2">Z waluty:</label>
+  <select id="w2"></select>
+  <label for="w1">Na walutę:</label>
+  <select id="w1"></select>
+  <button id="convertBtn">Przelicz</button>
+  <div id="wynikBox"></div>
+
+  <script>
+    const w2 = document.getElementById('w2');
+    const w1 = document.getElementById('w1');
+    const wynikBox = document.getElementById('wynikBox');
+    let kursy = {};
+    let walutyNazwy = {};
+
+    async function pobierzWaluty() {
+      const odpowiedz = await fetch('https://api.nbp.pl/api/exchangerates/tables/A/?format=json');
+      const dane = await odpowiedz.json();
+      const tabela = dane[0].rates;
+
+      kursy['PLN'] = 1;
+      walutyNazwy['PLN'] = 'Polski Złoty';
+      
+      tabela.forEach(pozycja => {
+        kursy[pozycja.code] = pozycja.mid;
+        walutyNazwy[pozycja.code] = pozycja.currency;
+      });
+
+      const waluty = Object.keys(kursy).sort();
+      waluty.forEach(kod => {
+        const opcjaZ = document.createElement('option');
+        const opcjaNa = document.createElement('option');
+        opcjaZ.value = kod;
+        opcjaZ.textContent = `${kod} - ${walutyNazwy[kod]}`;
+        opcjaNa.value = kod;
+        opcjaNa.textContent = `${kod} - ${walutyNazwy[kod]}`;
+
+        w2.appendChild(opcjaZ);
+        w1.appendChild(opcjaNa);
+      });
+
+      w2.value = 'USD';
+      w1.value = 'PLN';
+    }
+
+    function przeliczWalute() {
+      const kwota = parseFloat(document.getElementById('kwotaInput').value);
+      const zWaluty = w2.value;
+      const naWalute = w1.value;
+
+      if (!kursy[zWaluty] || !kursy[naWalute] || isNaN(kwota)) {
+        wynikBox.textContent = 'Błąd.';
+        return;
+      }
+
+      const wynik = kwota * (kursy[zWaluty] / kursy[naWalute]);
+      wynikBox.textContent = `${kwota} ${zWaluty} = ${wynik.toFixed(2)} ${naWalute}`;
+    }
+
+    document.getElementById('convertBtn').addEventListener('click', przeliczWalute);
+    pobierzWaluty();
+  </script>
+</body>
+</html>
